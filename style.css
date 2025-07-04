@@ -172,22 +172,18 @@ header p {
 }
 
 /* --- プレビューエリア --- */
-#multi-preview-container {
+#multi-preview-container, #single-preview-area {
     width: 100%;
+    align-content: flex-start;
+}
+#multi-preview-container {
     height: 100%;
-    align-content: flex-start;
-}
-#single-preview-area {
-    width: 100%;
-    height: 94%;
-    align-content: flex-start;
-}
-#multi-preview-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 1.5rem;
 }
 #single-preview-area {
+    height: 94%;
     display: flex;
     justify-content: center;
     align-items: center;
