@@ -1,197 +1,242 @@
-// 信頼性の高いES Module CDNである「esm.sh」からライブラリをインポート
-import toIco from 'https://esm.sh/to-ico';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // DOM要素の取得
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const fileInputButton = document.getElementById('file-input-button');
-    const previewArea = document.getElementById('preview-area');
-    const previewGrid = document.getElementById('preview-grid');
-    const generateButton = document.getElementById('generate-button');
-    const generateButtonText = document.getElementById('generate-button-text');
-    const spinner = document.getElementById('spinner');
-    const resultArea = document.getElementById('result-area');
-    const downloadLink = document.getElementById('download-link');
+    // --- DOM要素の取得 ---
+    const imageLoader = document.getElementById('image-loader');
+    const uploadPrompt = document.getElementById('upload-prompt');
+    const previewContainer = document.getElementById('preview-container');
+    const workspace = document.querySelector('.workspace');
+    const generateBtn = document.getElementById('generate-btn');
+    const resetBtn = document.getElementById('reset-btn');
+    const imageInfo = document.getElementById('image-info');
 
-    // 選択されたファイルを管理する配列
-    let selectedFiles = [];
+    // アップロードされたファイルを管理する配列
+    let imageFiles = [];
 
     // --- イベントリスナーの設定 ---
+    imageLoader.addEventListener('change', (e) => handleFiles(e.target.files));
+    generateBtn.addEventListener('click', generateIcoFile);
+    resetBtn.addEventListener('click', resetUploader);
+    
+    // ドラッグ＆ドロップのイベント
+    workspace.addEventListener('dragenter', handleDragEnter, false);
+    workspace.addEventListener('dragover', handleDragOver, false);
+    workspace.addEventListener('dragleave', handleDragLeave, false);
+    workspace.addEventListener('drop', handleDrop, false);
 
-    // ファイル選択ボタンのクリック
-    fileInputButton.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', handleFileSelect);
-
-    // ドラッグ＆ドロップ関連
-    dropZone.addEventListener('dragover', handleDragOver);
-    dropZone.addEventListener('dragleave', handleDragLeave);
-    dropZone.addEventListener('drop', handleDrop);
-
-    // プレビュー画像の削除（イベント委任）
-    previewGrid.addEventListener('click', handleRemoveImage);
-
-    // ICO生成ボタンのクリック
-    generateButton.addEventListener('click', handleGenerateIco);
-
-
-    // --- 関数定義 ---
-
-    /**
-     * ファイルが選択されたときの処理（input or drop）
-     * @param {Event} e 
-     */
-    function handleFileSelect(e) {
-        const files = e.target.files || e.dataTransfer.files;
-        addFiles(files);
+    // --- 主要な関数 ---
+    function handleDragEnter(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        workspace.classList.add('drag-over');
     }
 
-    /**
-     * ドラッグオーバー時の処理
-     * @param {DragEvent} e 
-     */
     function handleDragOver(e) {
         e.preventDefault();
         e.stopPropagation();
-        dropZone.classList.add('drag-over');
+        e.dataTransfer.dropEffect = 'copy';
     }
 
-    /**
-     * ドラッグが離れたときの処理
-     * @param {DragEvent} e 
-     */
     function handleDragLeave(e) {
         e.preventDefault();
         e.stopPropagation();
-        dropZone.classList.remove('drag-over');
+        workspace.classList.remove('drag-over');
     }
-    
-    /**
-     * ドロップ時の処理
-     * @param {DragEvent} e 
-     */
+
     function handleDrop(e) {
         e.preventDefault();
         e.stopPropagation();
-        dropZone.classList.remove('drag-over');
-        const files = e.dataTransfer.files;
-        addFiles(files);
+        workspace.classList.remove('drag-over');
+        handleFiles(e.dataTransfer.files);
     }
 
-    /**
-     * ファイルリストを処理してプレビューを追加
-     * @param {FileList} files 
-     */
-    function addFiles(files) {
-        const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
-        if (imageFiles.length === 0) {
-            alert('画像ファイルを選択してください。');
-            return;
-        }
+    // ファイルが選択されたときのメイン処理
+    function handleFiles(files) {
+        // UIをアップロード後の状態に更新
+        uploadPrompt.classList.add('hidden');
+        previewContainer.classList.remove('hidden');
+        resetBtn.classList.remove('hidden');
 
-        imageFiles.forEach(file => {
-            // 重複チェック
-            if (!selectedFiles.some(f => f.name === file.name && f.size === file.size)) {
-                selectedFiles.push(file);
-                createPreview(file);
-            }
+        // ファイルリストを非同期で処理
+        Array.from(files).forEach(file => {
+            // ユニークIDを付与して重複を避ける
+            file.uniqueId = Date.now() + Math.random(); 
+            // 既存のリストに追加
+            imageFiles.push(file);
+            // プレビューを生成
+            createPreview(file);
         });
-        updateUI();
+        updateUIState();
     }
 
-    /**
-     * 画像のプレビューを生成してDOMに追加
-     * @param {File} file 
-     */
+    // 画像ファイルのプレビューと検証
     function createPreview(file) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            const card = document.createElement('div');
-            card.className = 'preview-card';
-            card.dataset.fileName = file.name;
-            card.innerHTML = `
-                <img src="${e.target.result}" alt="${file.name}" class="preview-card__image">
-                <div class="preview-card__info">${file.name}</div>
-                <button type="button" class="preview-card__remove" title="削除">×</button>
-            `;
-            previewGrid.appendChild(card);
+            const img = new Image();
+            img.onload = () => {
+                // 検証
+                const isValid = img.width === img.height && img.width <= 256;
+                file.isValid = isValid;
+                file.width = img.width;
+                file.height = img.height;
+
+                // プレビュー要素を作成
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+                previewItem.dataset.id = file.uniqueId;
+                if (!isValid) {
+                    previewItem.classList.add('invalid');
+                }
+
+                const errorMsg = !isValid ? `<div class="error-msg">不正なサイズです</div>` : '';
+                
+                previewItem.innerHTML = `
+                    <img src="${e.target.result}" alt="${file.name}">
+                    <div class="file-info">${img.width} x ${img.height}</div>
+                    ${errorMsg}
+                    <button class="remove-btn" title="削除">×</button>
+                `;
+                
+                previewContainer.appendChild(previewItem);
+                
+                // 削除ボタンにイベントリスナーを追加
+                previewItem.querySelector('.remove-btn').addEventListener('click', () => {
+                    removeFile(file.uniqueId);
+                });
+
+                // 検証が終わったらUI状態を更新
+                updateUIState();
+            };
+            img.src = e.target.result;
         };
-        reader.readAsDataURL(file);
+        // PNG以外はエラーとして扱う
+        if (file.type === 'image/png') {
+            reader.readAsDataURL(file);
+        } else {
+            file.isValid = false;
+            // エラー表示用のプレビュー
+            const previewItem = document.createElement('div');
+            previewItem.className = 'preview-item invalid';
+            previewItem.dataset.id = file.uniqueId;
+            previewItem.innerHTML = `
+                <div class="file-info">${file.name}</div>
+                <div class="error-msg">PNGファイルではありません</div>
+                <button class="remove-btn" title="削除">×</button>
+            `;
+            previewContainer.appendChild(previewItem);
+            previewItem.querySelector('.remove-btn').addEventListener('click', () => {
+                removeFile(file.uniqueId);
+            });
+            updateUIState();
+        }
+    }
+
+    // ファイルをリストとプレビューから削除
+    function removeFile(id) {
+        imageFiles = imageFiles.filter(f => f.uniqueId != id);
+        const previewItem = previewContainer.querySelector(`[data-id='${id}']`);
+        if (previewItem) {
+            previewItem.remove();
+        }
+        updateUIState();
     }
     
-    /**
-     * 画像削除ボタンの処理
-     * @param {MouseEvent} e 
-     */
-    function handleRemoveImage(e) {
-        if (e.target.classList.contains('preview-card__remove')) {
-            const card = e.target.closest('.preview-card');
-            const fileName = card.dataset.fileName;
-            
-            // 配列からファイルを削除
-            selectedFiles = selectedFiles.filter(file => file.name !== fileName);
-            
-            // DOMからプレビューを削除
-            card.remove();
-            
-            updateUI();
+    // UIの状態を更新（ボタンの有効/無効など）
+    function updateUIState() {
+        const validFilesCount = imageFiles.filter(f => f.isValid).length;
+        if (validFilesCount > 0) {
+            generateBtn.disabled = false;
+            imageInfo.textContent = `${validFilesCount}個の有効な画像をICOに変換します。`;
+        } else {
+            generateBtn.disabled = true;
+            imageInfo.textContent = 'ICOに含める有効な画像ファイルがありません。';
         }
-    }
-
-    /**
-     * ICO生成処理
-     */
-    async function handleGenerateIco() {
-        if (selectedFiles.length === 0) return;
         
-        setLoading(true);
-        resultArea.hidden = true;
-
-        try {
-            // 全てのファイルをArrayBufferに変換する
-            const imageBuffers = await Promise.all(
-                selectedFiles.map(file => file.arrayBuffer())
-            );
-            
-            // to-icoライブラリでICOファイルを生成
-            const icoBuffer = await toIco(imageBuffers);
-
-            // ダウンロードリンクを生成
-            const blob = new Blob([icoBuffer], { type: 'image/x-icon' });
-            const url = URL.createObjectURL(blob);
-            downloadLink.href = url;
-            
-            resultArea.hidden = false;
-
-        } catch (error) {
-            console.error('ICO生成エラー:', error);
-            alert('ICOファイルの生成に失敗しました。コンソールで詳細を確認してください。');
-        } finally {
-            setLoading(false);
+        // 全てのファイルが削除されたら初期状態に戻す
+        if (imageFiles.length === 0) {
+            resetUploader();
         }
     }
+    
+    // 全てをリセットして初期状態に戻す
+    function resetUploader() {
+        imageFiles = [];
+        previewContainer.innerHTML = '';
+        previewContainer.classList.add('hidden');
+        uploadPrompt.classList.remove('hidden');
+        generateBtn.disabled = true;
+        resetBtn.classList.add('hidden');
+        imageLoader.value = ''; // ファイル選択をリセット
+        imageInfo.textContent = 'ICOに含める画像ファイルを選択してください。';
+    }
 
-    /**
-     * UIの状態を更新する
-     */
-    function updateUI() {
-        const hasFiles = selectedFiles.length > 0;
-        previewArea.hidden = !hasFiles;
-        generateButton.disabled = !hasFiles;
+    // --- ICO生成ロジック ---
+    async function generateIcoFile() {
+        const validFiles = imageFiles.filter(f => f.isValid);
+        if (validFiles.length === 0) return;
+
+        // 各PNGファイルをArrayBufferとして読み込む
+        const imageBuffers = await Promise.all(
+            validFiles.map(file => file.arrayBuffer())
+        );
+
+        // ICOファイルの構造を組み立てる
+        const numImages = validFiles.length;
+        const headerSize = 6;
+        const dirEntrySize = 16;
+        const totalDirSize = numImages * dirEntrySize;
+        const imagesTotalSize = imageBuffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
         
-        // ファイルがなくなったら結果表示も隠す
-        if (!hasFiles) {
-            resultArea.hidden = true;
-        }
-    }
+        const icoTotalSize = headerSize + totalDirSize + imagesTotalSize;
+        const icoBuffer = new ArrayBuffer(icoTotalSize);
+        const dataView = new DataView(icoBuffer);
 
-    /**
-     * ローディング状態を設定
-     * @param {boolean} isLoading 
-     */
-    function setLoading(isLoading) {
-        generateButton.disabled = isLoading;
-        spinner.hidden = !isLoading;
-        generateButtonText.textContent = isLoading ? '生成中...' : 'ICOを生成';
+        // 1. ヘッダーを書き込む (6 bytes)
+        dataView.setUint16(0, 0, true); // Reserved, must be 0
+        dataView.setUint16(2, 1, true); // Type, 1 for ICO
+        dataView.setUint16(4, numImages, true); // Number of images
+
+        let currentOffset = headerSize + totalDirSize;
+
+        // 2. イメージディレクトリを書き込む (16 bytes per image)
+        for (let i = 0; i < numImages; i++) {
+            const file = validFiles[i];
+            const buffer = imageBuffers[i];
+            const entryOffset = headerSize + i * dirEntrySize;
+            
+            // Width & Height (0 means 256)
+            dataView.setUint8(entryOffset, file.width === 256 ? 0 : file.width);
+            dataView.setUint8(entryOffset + 1, file.height === 256 ? 0 : file.height);
+            dataView.setUint8(entryOffset + 2, 0); // Color Palette, 0 for PNG
+            dataView.setUint8(entryOffset + 3, 0); // Reserved
+            dataView.setUint16(entryOffset + 4, 1, true); // Color Planes
+            dataView.setUint16(entryOffset + 6, 32, true); // Bits Per Pixel
+            dataView.setUint32(entryOffset + 8, buffer.byteLength, true); // Image data size
+            dataView.setUint32(entryOffset + 12, currentOffset, true); // Image data offset
+
+            currentOffset += buffer.byteLength;
+        }
+
+        // 3. PNGイメージデータを書き込む
+        currentOffset = headerSize + totalDirSize;
+        for (let i = 0; i < imageBuffers.length; i++) {
+            const imageUint8Array = new Uint8Array(imageBuffers[i]);
+            const icoUint8Array = new Uint8Array(icoBuffer, currentOffset, imageUint8Array.length);
+            icoUint8Array.set(imageUint8Array);
+            currentOffset += imageUint8Array.length;
+        }
+
+        // 4. ファイルをダウンロードさせる
+        const blob = new Blob([icoBuffer], { type: 'image/x-icon' });
+        const url = URL.createObjectURL(blob);
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'favicon.ico';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        URL.revokeObjectURL(url);
     }
 });
