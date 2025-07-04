@@ -1,5 +1,5 @@
 // ES Modules 形式で to-ico ライブラリをCDNから直接インポート
-import toIco from 'https://cdn.jsdelivr.net/npm/to-ico@2.0.0/+esm';
+import toIco from 'https://cdn.jsdelivr.net/npm/to-ico@2.0.0/dist/index.mjs';
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM要素の取得
