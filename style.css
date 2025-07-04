@@ -453,3 +453,49 @@ footer nav a:hover {
         align-self: stretch;
     }
 }
+
+/* --- 利用規約ページ用スタイル --- */
+.page-container {
+    max-width: 800px;
+    margin: 1.5rem auto;
+    padding: 2rem;
+    background-color: var(--container-bg-color);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.page-container h2 {
+    font-weight: 500;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.page-container h2:first-of-type {
+    margin-top: 0;
+}
+
+.page-container p, .page-container ul {
+    margin-bottom: 1rem;
+    line-height: 1.8;
+}
+
+.page-container strong {
+    font-weight: 500;
+}
+
+.page-container ul {
+    padding-left: 20px;
+}
+
+.page-container li {
+    margin-bottom: 0.75rem;
+}
+
+@media (max-width: 800px) {
+    .page-container {
+        margin: 1rem;
+        padding: 1.5rem;
+    }
+}
