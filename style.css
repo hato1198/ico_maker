@@ -40,6 +40,54 @@ header p {
     font-size: 0.9rem;
 }
 
+/* --- モード選択 --- */
+#mode-selection-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+    padding: 2rem;
+    flex: 1;
+}
+
+.mode-button {
+    background: var(--container-bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    width: 300px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+.mode-button:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+
+.mode-button .mode-icon {
+    width: 128px;
+    height: 128px;
+    display: block;
+    margin: 0 auto 1rem auto;
+}
+
+.mode-button h2 {
+    margin: 0 0 0.5rem 0;
+    color: var(--primary-color);
+    font-weight: 400;
+}
+
+.mode-button p {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 400;
+}
+
+/* --- メインコンテナ --- */
 .app-container {
     display: flex;
     flex-wrap: wrap;
@@ -50,7 +98,26 @@ header p {
     flex: 1;
     width: 100%;
     box-sizing: border-box;
+    position: relative;
 }
+
+.back-button {
+    position: absolute;
+    top: 1.5rem;
+    left: 1.5rem;
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background-color 0.2s, color 0.2s;
+}
+.back-button:hover {
+    background-color: #e9ecef;
+}
+
 
 .workspace {
     flex: 3;
@@ -89,12 +156,13 @@ header p {
     align-self: flex-start;
 }
 
-#upload-prompt {
+#multi-upload-prompt, #single-upload-prompt {
     text-align: center;
 }
 
-#upload-prompt p {
-    margin: 8px 0;
+#multi-upload-prompt label, #single-upload-prompt label {
+    width: 200px;
+    margin-top: 0;
 }
 
 .upload-note {
@@ -103,15 +171,29 @@ header p {
     margin-top: 1rem !important;
 }
 
-#preview-container {
+/* --- プレビューエリア --- */
+#multi-preview-container, #single-preview-area {
     width: 100%;
-    height: 100%;
+    height: 94%;
+    align-content: flex-start;
+}
+#multi-preview-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
     gap: 1.5rem;
-    align-content: flex-start;
 }
-
+#single-preview-area {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 1rem;
+}
+#single-preview-area img {
+    max-width: 100%;
+    max-height: 300px;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
 .preview-item {
     position: relative;
     border: 1px solid var(--border-color);
@@ -155,69 +237,46 @@ header p {
     line-height: 21px;
     text-align: center;
     z-index: 10;
+    transition: background-color 0.2s ease;
+}
+.preview-item .remove-btn:hover {
+    background-color: #c82333;
 }
 
-.preview-item .file-info {
+.preview-item .file-info, .file-info {
     font-weight: 500;
     color: var(--text-color);
     padding: 0.25rem 0.5rem;
     background: #f8f9fa;
     border-radius: 4px;
 }
-
-.preview-item .error-msg {
+.preview-item .error-msg, .error-msg {
     color: var(--error-color);
     font-weight: 700;
     margin-top: 0.5rem;
 }
 
-.add-button {
-    position: absolute;
-    bottom: 1.5rem;
-    right: 1.5rem;
-    width: 50px;
-    height: 50px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    font-size: 28px;
-    line-height: 50px;
-    text-align: center;
-    cursor: pointer;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-    transition: background-color 0.2s, transform 0.2s;
-    z-index: 100;
-}
 
-.add-button:hover {
-    background-color: var(--primary-hover-color);
-    transform: scale(1.05);
-}
-
+/* --- コントロールパネル --- */
 .controls h2 {
     font-weight: 400;
     margin: 0 0 1rem 0;
 }
-
 fieldset {
     border: none;
     padding: 0;
     margin: 0 0 1rem 0;
 }
-
 legend {
     font-weight: 500;
     margin-bottom: 0.5rem;
     padding: 0;
 }
-
 .filename-wrapper {
     display: flex;
     align-items: center;
 }
-
-#filename-input {
+input[type="text"] {
     flex-grow: 1;
     padding: 0.5rem 0.75rem;
     border: 1px solid var(--border-color);
@@ -226,15 +285,13 @@ legend {
     font-family: inherit;
     font-weight: 300;
 }
-
-#filename-input:focus {
+input[type="text"]:focus {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
 }
-
 .file-extension {
-    padding: 0.45rem 0.75rem;
+    padding: 0.44rem 0.75rem;
     background-color: #e9ecef;
     border: 1px solid var(--border-color);
     border-left: none;
@@ -243,12 +300,36 @@ legend {
     color: #495057;
 }
 
+.size-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 0.5rem;
+}
+.size-options label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    background-color: #f8f9fa;
+    padding: 0.5rem;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid var(--border-color);
+}
+.size-options label:has(input:checked) {
+    background-color: #e6f2ff;
+    border-color: var(--primary-color);
+}
+.size-options input {
+    accent-color: var(--primary-color);
+}
+
 .divider {
     border-top: 1px solid var(--border-color);
     margin: 1.5rem 0;
 }
 
-#image-info {
+#multi-image-info {
     font-size: 0.9rem;
     font-weight: 300;
     margin-bottom: 1.5rem;
@@ -269,28 +350,47 @@ legend {
     box-sizing: border-box;
     margin-top: 0.5rem;
 }
-
 .button:hover:not(:disabled) {
     background-color: #5a6268;
 }
-
 .button.primary {
     background-color: var(--primary-color);
 }
-
 .button.primary:hover:not(:disabled) {
     background-color: var(--primary-hover-color);
 }
-
 .button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
 }
 
+.add-button {
+    position: absolute;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 50px;
+    height: 50px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    font-size: 28px;
+    line-height: 50px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    transition: background-color 0.2s, transform 0.2s;
+    z-index: 100;
+}
+.add-button:hover {
+    background-color: var(--primary-hover-color);
+    transform: scale(1.05);
+}
+
+/* --- 共通ヘルパー --- */
 .hidden {
     display: none !important;
 }
-
 .sr-only {
     position: absolute;
     width: 1px;
@@ -303,6 +403,7 @@ legend {
     border-width: 0;
 }
 
+/* --- フッター --- */
 footer {
     background-color: #343a40;
     color: #f8f9fa;
@@ -311,92 +412,44 @@ footer {
     margin-top: 1.5rem;
     font-weight: 300;
 }
-
 footer p {
     margin: 0 0 0.5rem 0;
 }
-
 footer nav a {
     color: #dee2e6;
     text-decoration: none;
     margin: 0 0.75rem;
 }
-
 footer nav a:hover {
     color: #ffffff;
     text-decoration: underline;
 }
 
+/* --- レスポンシブ --- */
 @media (max-width: 800px) {
     .app-container {
         flex-direction: column;
         padding: 1rem;
         gap: 1rem;
     }
-    
+    .back-button {
+        top: 1rem;
+        left: 1rem;
+    }
     .workspace {
         min-height: 300px;
     }
-    
-    #preview-container {
+    #multi-preview-container {
         grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
         gap: 1rem;
     }
-    
     .add-button {
         bottom: 1rem;
         right: 1rem;
     }
-    
     .controls {
         width: 100%;
         box-sizing: border-box;
         align-self: stretch;
-    }
-}
-
-/* --- 利用規約ページ用スタイル --- */
-.page-container {
-    max-width: 800px;
-    margin: 1.5rem auto;
-    padding: 2rem;
-    background-color: var(--container-bg-color);
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.page-container h2 {
-    font-weight: 500;
-    margin-top: 2rem;
-    margin-bottom: 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e9ecef;
-}
-
-.page-container h2:first-of-type {
-    margin-top: 0;
-}
-
-.page-container p, .page-container ul {
-    margin-bottom: 1rem;
-    line-height: 1.8;
-}
-
-.page-container strong {
-    font-weight: 500;
-}
-
-.page-container ul {
-    padding-left: 20px;
-}
-
-.page-container li {
-    margin-bottom: 0.75rem;
-}
-
-@media (max-width: 800px) {
-    .page-container {
-        margin: 1rem;
-        padding: 1.5rem;
     }
 }

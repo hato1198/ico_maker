@@ -1,219 +1,309 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- DOM要素の取得 ---
-    const imageLoader = document.getElementById('image-loader');
-    const uploadPrompt = document.getElementById('upload-prompt');
-    const previewContainer = document.getElementById('preview-container');
-    const workspace = document.querySelector('.workspace');
-    const generateBtn = document.getElementById('generate-btn');
-    const resetBtn = document.getElementById('reset-btn');
-    const imageInfo = document.getElementById('image-info');
-    const filenameInput = document.getElementById('filename-input');
+    // --- 全体コンテナとモード選択ボタン ---
+    const modeSelectionContainer = document.getElementById('mode-selection-container');
+    const singleModeContainer = document.getElementById('single-mode-container');
+    const multiModeContainer = document.getElementById('multi-mode-container');
+    const selectSingleBtn = document.getElementById('select-single-mode');
+    const selectMultiBtn = document.getElementById('select-multi-mode');
+    const backButtons = document.querySelectorAll('.back-button');
+
+    // --- 単一画像モード要素 ---
+    const singleWorkspace = document.getElementById('single-workspace');
+    const singleImageLoader = document.getElementById('single-image-loader');
+    const singleUploadPrompt = document.getElementById('single-upload-prompt');
+    const singlePreviewArea = document.getElementById('single-preview-area');
+    const singleGenerateBtn = document.getElementById('single-generate-btn');
+    const singleResetBtn = document.getElementById('single-reset-btn');
+    const singleFilenameInput = document.getElementById('single-filename-input');
+    const sizeOptionsContainer = document.getElementById('size-options');
+    let singleImageFile = null;
+    let originalImage = new Image();
+
+    // --- 複数画像モード要素 ---
+    const multiWorkspace = document.getElementById('multi-workspace');
+    const multiImageLoader = document.getElementById('multi-image-loader');
+    const multiUploadPrompt = document.getElementById('multi-upload-prompt');
+    const multiPreviewContainer = document.getElementById('multi-preview-container');
     const addMoreBtn = document.getElementById('add-more-btn');
+    const multiGenerateBtn = document.getElementById('multi-generate-btn');
+    const multiResetBtn = document.getElementById('multi-reset-btn');
+    const multiFilenameInput = document.getElementById('multi-filename-input');
+    const multiImageInfo = document.getElementById('multi-image-info');
+    let multiImageFiles = [];
 
-    // アップロードされたファイルを管理する配列
-    let imageFiles = [];
+    // --- 初期化 ---
+    const SIZES = [16, 24, 32, 48, 64, 128, 256];
+    initializeSizeOptions();
 
-    // --- イベントリスナーの設定 ---
-    imageLoader.addEventListener('change', (e) => handleFiles(e.target.files));
-    addMoreBtn.addEventListener('click', () => imageLoader.click());
-    generateBtn.addEventListener('click', generateIcoFile);
-    resetBtn.addEventListener('click', resetUploader);
-    
-    // ドラッグ＆ドロップのイベント
-    workspace.addEventListener('dragenter', handleDragEnter, false);
-    workspace.addEventListener('dragover', handleDragOver, false);
-    workspace.addEventListener('dragleave', handleDragLeave, false);
-    workspace.addEventListener('drop', handleDrop, false);
+    // --- モード切り替えイベント ---
+    selectSingleBtn.addEventListener('click', () => switchMode('single'));
+    selectMultiBtn.addEventListener('click', () => switchMode('multi'));
+    backButtons.forEach(btn => btn.addEventListener('click', () => switchMode('selection')));
 
-    // --- ドラッグ＆ドロップ ハンドラ ---
-    function handleDragEnter(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        workspace.classList.add('drag-over');
+    function switchMode(mode) {
+        modeSelectionContainer.classList.add('hidden');
+        singleModeContainer.classList.add('hidden');
+        multiModeContainer.classList.add('hidden');
+
+        if (mode === 'single') {
+            singleModeContainer.classList.remove('hidden');
+        } else if (mode === 'multi') {
+            multiModeContainer.classList.remove('hidden');
+        } else {
+            modeSelectionContainer.classList.remove('hidden');
+            // モードを抜ける時にリセットする
+            resetSingleMode();
+            resetMultiMode();
+        }
     }
 
-    function handleDragOver(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        e.dataTransfer.dropEffect = 'copy';
-    }
-
-    function handleDragLeave(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        workspace.classList.remove('drag-over');
-    }
-
-    function handleDrop(e) {
-        e.preventDefault();
-        e.stopPropagation();
-        workspace.classList.remove('drag-over');
-        handleFiles(e.dataTransfer.files);
-    }
-
-    // --- ファイル処理 ---
-    function handleFiles(files) {
-        Array.from(files).forEach(file => {
-            file.uniqueId = Date.now() + Math.random(); 
-            imageFiles.push(file);
-            createPreview(file);
+    // --- 単一画像モード ---
+    function initializeSizeOptions() {
+        SIZES.forEach(size => {
+            const id = `size-${size}`;
+            const label = document.createElement('label');
+            label.htmlFor = id;
+            label.innerHTML = `<input type="checkbox" id="${id}" value="${size}" checked> ${size}x${size}`;
+            sizeOptionsContainer.appendChild(label);
         });
-        updateUIState();
     }
 
-    function createPreview(file) {
+    singleImageLoader.addEventListener('change', e => handleSingleFile(e.target.files[0]));
+    setupDragAndDrop(singleWorkspace, file => handleSingleFile(file));
+    singleGenerateBtn.addEventListener('click', generateIcoFromSingle);
+    singleResetBtn.addEventListener('click', resetSingleMode);
+
+    function handleSingleFile(file) {
+        if (!file || !file.type.startsWith('image/png')) {
+            alert('PNG画像ファイルを選択してください。');
+            return;
+        }
+        singleImageFile = file;
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = e => {
+            originalImage.onload = () => {
+                if (originalImage.width !== originalImage.height) {
+                    alert('正方形の画像を選択してください。');
+                    resetSingleMode();
+                    return;
+                }
+                updateSingleUI(true);
+            };
+            originalImage.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+    
+    function updateSingleUI(isLoaded) {
+        singleUploadPrompt.classList.toggle('hidden', isLoaded);
+        singlePreviewArea.classList.toggle('hidden', !isLoaded);
+        singleResetBtn.classList.toggle('hidden', !isLoaded);
+        singleGenerateBtn.disabled = !isLoaded;
+
+        if(isLoaded) {
+            singlePreviewArea.innerHTML = `<img src="${originalImage.src}" alt="プレビュー">`;
+        } else {
+            singlePreviewArea.innerHTML = '';
+        }
+    }
+    
+    function resetSingleMode() {
+        singleImageFile = null;
+        originalImage.src = '';
+        singleImageLoader.value = '';
+        updateSingleUI(false);
+    }
+    
+    async function generateIcoFromSingle() {
+        const selectedSizes = Array.from(sizeOptionsContainer.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
+        if (selectedSizes.length === 0) {
+            alert('作成するサイズを1つ以上選択してください。');
+            return;
+        }
+
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        const imageEntries = await Promise.all(selectedSizes.map(async size => {
+            canvas.width = size;
+            canvas.height = size;
+            ctx.clearRect(0, 0, size, size);
+            ctx.drawImage(originalImage, 0, 0, size, size);
+            
+            const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+            const buffer = await blob.arrayBuffer();
+
+            return { width: size, height: size, buffer: buffer };
+        }));
+
+        const icoBlob = createIcoBlob(imageEntries);
+        const filename = singleFilenameInput.value.trim() || 'favicon';
+        downloadBlob(icoBlob, `${filename}.ico`);
+    }
+
+    // --- 複数画像モード ---
+    multiImageLoader.addEventListener('change', e => handleMultiFiles(e.target.files));
+    setupDragAndDrop(multiWorkspace, files => handleMultiFiles(files, true));
+    addMoreBtn.addEventListener('click', () => multiImageLoader.click());
+    multiGenerateBtn.addEventListener('click', generateIcoFromMulti);
+    multiResetBtn.addEventListener('click', resetMultiMode);
+    
+    function handleMultiFiles(files, isDrop = false) {
+        const fileList = isDrop ? files : Array.from(files);
+        fileList.forEach(file => {
+            if (multiImageFiles.some(f => f.name === file.name && f.size === file.size)) return;
+            
+            file.uniqueId = Date.now() + Math.random();
+            multiImageFiles.push(file);
+            createMultiPreview(file);
+        });
+        updateMultiUI();
+    }
+
+    function createMultiPreview(file) {
+        const reader = new FileReader();
+        reader.onload = e => {
             const img = new Image();
             img.onload = () => {
                 file.isValid = img.width === img.height && img.width > 0 && img.width <= 256;
                 file.width = img.width;
                 file.height = img.height;
-                renderPreviewItem(file, e.target.result, img.width, img.height);
-                updateUIState();
+                renderMultiPreviewItem(file, e.target.result, img.width, img.height);
+                updateMultiUI();
             };
             img.src = e.target.result;
         };
-
         if (file.type === 'image/png') {
             reader.readAsDataURL(file);
         } else {
             file.isValid = false;
-            renderPreviewItem(file, null, 0, 0, "PNGファイルではありません");
-            updateUIState();
+            renderMultiPreviewItem(file, null, 0, 0, 'PNGではありません');
+            updateMultiUI();
         }
     }
     
-    function renderPreviewItem(file, imgSrc, width, height, customError = null) {
-        const previewItem = document.createElement('div');
-        previewItem.className = 'preview-item';
-        previewItem.dataset.id = file.uniqueId;
-
-        let errorMsg = customError;
-        if (!errorMsg && !file.isValid) {
-            errorMsg = "サイズが不正です";
-        }
+    function renderMultiPreviewItem(file, imgSrc, width, height, error) {
+        const item = document.createElement('div');
+        item.className = 'preview-item';
+        item.dataset.id = file.uniqueId;
+        if (!file.isValid) item.classList.add('invalid');
         
-        if (!file.isValid) {
-            previewItem.classList.add('invalid');
-        }
-
-        const imgTag = imgSrc ? `<img src="${imgSrc}" alt="${file.name}" draggable="false">` : '';
-        const infoTag = width > 0 ? `<div class="file-info">${width} x ${height}</div>` : `<div class="file-info">${file.name}</div>`;
-        const errorTag = errorMsg ? `<div class="error-msg">${errorMsg}</div>` : '';
-
-        previewItem.innerHTML = `
+        const errorMsg = error || (file.isValid ? '' : 'サイズが不適切です');
+        item.innerHTML = `
             <button class="remove-btn" title="削除">×</button>
-            ${imgTag}
-            ${infoTag}
-            ${errorTag}
+            ${imgSrc ? `<img src="${imgSrc}" draggable="false">` : ''}
+            <div class="file-info">${width > 0 ? `${width}x${height}`: file.name}</div>
+            ${errorMsg ? `<div class="error-msg">${errorMsg}</div>`: ''}
         `;
+        multiPreviewContainer.appendChild(item);
+        item.querySelector('.remove-btn').addEventListener('click', () => {
+            multiImageFiles = multiImageFiles.filter(f => f.uniqueId !== file.uniqueId);
+            item.remove();
+            updateMultiUI();
+        });
+    }
+
+    function updateMultiUI() {
+        const hasFiles = multiImageFiles.length > 0;
+        const validCount = multiImageFiles.filter(f => f.isValid).length;
         
-        previewContainer.appendChild(previewItem);
-        previewItem.querySelector('.remove-btn').addEventListener('click', () => removeFile(file.uniqueId));
-    }
-
-    function removeFile(id) {
-        imageFiles = imageFiles.filter(f => f.uniqueId != id);
-        const previewItem = previewContainer.querySelector(`[data-id='${id}']`);
-        if (previewItem) {
-            previewItem.remove();
-        }
-        updateUIState();
-    }
-    
-    // --- UI状態管理 ---
-    function updateUIState() {
-        const hasFiles = imageFiles.length > 0;
-        const validFilesCount = imageFiles.filter(f => f.isValid).length;
-
-        // 表示エリアの切り替え
-        uploadPrompt.classList.toggle('hidden', hasFiles);
-        previewContainer.classList.toggle('hidden', !hasFiles);
+        multiUploadPrompt.classList.toggle('hidden', hasFiles);
+        multiPreviewContainer.classList.toggle('hidden', !hasFiles);
         addMoreBtn.classList.toggle('hidden', !hasFiles);
-        resetBtn.classList.toggle('hidden', !hasFiles);
-        
-        // 生成ボタンの状態
-        generateBtn.disabled = validFilesCount === 0;
+        multiResetBtn.classList.toggle('hidden', !hasFiles);
+        multiGenerateBtn.disabled = validCount === 0;
 
-        // 情報テキストの更新
-        if (validFilesCount > 0) {
-            imageInfo.textContent = `${validFilesCount}個の有効な画像をICOに変換します。`;
+        if (validCount > 0) {
+            multiImageInfo.textContent = `${validCount}個の画像をICOに変換します。`;
         } else if (hasFiles) {
-            imageInfo.textContent = '有効な画像がありません。';
+            multiImageInfo.textContent = '有効な画像がありません。';
         } else {
-            imageInfo.textContent = 'ICOに含める画像ファイルを選択してください。';
+            multiImageInfo.textContent = 'ICOに含める画像ファイルを選択してください。';
         }
     }
     
-    function resetUploader() {
-        imageFiles = [];
-        previewContainer.innerHTML = '';
-        imageLoader.value = '';
-        filenameInput.value = 'favicon';
-        updateUIState();
+    function resetMultiMode() {
+        multiImageFiles = [];
+        multiPreviewContainer.innerHTML = '';
+        multiImageLoader.value = '';
+        updateMultiUI();
+    }
+    
+    async function generateIcoFromMulti() {
+        const validFiles = multiImageFiles.filter(f => f.isValid);
+        if (validFiles.length === 0) return;
+        
+        const imageEntries = await Promise.all(validFiles.map(async file => {
+            const buffer = await file.arrayBuffer();
+            return { width: file.width, height: file.height, buffer: buffer };
+        }));
+        
+        const icoBlob = createIcoBlob(imageEntries);
+        const filename = multiFilenameInput.value.trim() || 'favicon';
+        downloadBlob(icoBlob, `${filename}.ico`);
     }
 
-    // --- ICO生成ロジック ---
-    async function generateIcoFile() {
-        const validFiles = imageFiles.filter(f => f.isValid);
-        if (validFiles.length === 0) {
-            return;
-        }
+    // --- 共通ヘルパー関数 ---
+    function setupDragAndDrop(element, callback) {
+        element.addEventListener('dragenter', e => { e.preventDefault(); e.stopPropagation(); element.classList.add('drag-over'); });
+        element.addEventListener('dragover', e => { e.preventDefault(); e.stopPropagation(); e.dataTransfer.dropEffect = 'copy'; });
+        element.addEventListener('dragleave', e => { e.preventDefault(); e.stopPropagation(); element.classList.remove('drag-over'); });
+        element.addEventListener('drop', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            element.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                callback(element.id.includes('multi') ? Array.from(files) : files[0]);
+            }
+        });
+    }
 
-        const imageBuffers = await Promise.all(validFiles.map(file => file.arrayBuffer()));
-
-        const numImages = validFiles.length;
+    function createIcoBlob(imageEntries) {
+        const numImages = imageEntries.length;
         const headerSize = 6;
         const dirEntrySize = 16;
         const totalDirSize = numImages * dirEntrySize;
-        const imagesTotalSize = imageBuffers.reduce((sum, buffer) => sum + buffer.byteLength, 0);
+        const imagesTotalSize = imageEntries.reduce((sum, entry) => sum + entry.buffer.byteLength, 0);
         
         const icoBuffer = new ArrayBuffer(headerSize + totalDirSize + imagesTotalSize);
         const dataView = new DataView(icoBuffer);
 
-        // ヘッダーを書き込む
-        dataView.setUint16(0, 0, true);
-        dataView.setUint16(2, 1, true);
-        dataView.setUint16(4, numImages, true);
+        dataView.setUint16(0, 0, true); // Reserved
+        dataView.setUint16(2, 1, true); // Type: ICO
+        dataView.setUint16(4, numImages, true); // Number of images
 
-        // イメージディレクトリを書き込む
         let currentOffset = headerSize + totalDirSize;
-        for (let i = 0; i < numImages; i++) {
-            const file = validFiles[i];
-            const buffer = imageBuffers[i];
+        imageEntries.forEach((entry, i) => {
             const entryOffset = headerSize + i * dirEntrySize;
-            
-            dataView.setUint8(entryOffset, file.width === 256 ? 0 : file.width);
-            dataView.setUint8(entryOffset + 1, file.height === 256 ? 0 : file.height);
-            dataView.setUint8(entryOffset + 2, 0);
-            dataView.setUint8(entryOffset + 3, 0);
-            dataView.setUint16(entryOffset + 4, 1, true);
-            dataView.setUint16(entryOffset + 6, 32, true);
-            dataView.setUint32(entryOffset + 8, buffer.byteLength, true);
-            dataView.setUint32(entryOffset + 12, currentOffset, true);
-            currentOffset += buffer.byteLength;
-        }
-
-        // PNGイメージデータを書き込む
-        currentOffset = headerSize + totalDirSize;
-        for (let i = 0; i < imageBuffers.length; i++) {
-            new Uint8Array(icoBuffer, currentOffset, imageBuffers[i].byteLength).set(new Uint8Array(imageBuffers[i]));
-            currentOffset += imageBuffers[i].byteLength;
-        }
-
-        // ファイルをダウンロードさせる
-        const blob = new Blob([icoBuffer], { type: 'image/x-icon' });
-        const url = URL.createObjectURL(blob);
+            dataView.setUint8(entryOffset, entry.width === 256 ? 0 : entry.width);
+            dataView.setUint8(entryOffset + 1, entry.height === 256 ? 0 : entry.height);
+            dataView.setUint8(entryOffset + 2, 0); // Color Palette
+            dataView.setUint8(entryOffset + 3, 0); // Reserved
+            dataView.setUint16(entryOffset + 4, 1, true); // Color Planes
+            dataView.setUint16(entryOffset + 6, 32, true); // Bits Per Pixel
+            dataView.setUint32(entryOffset + 8, entry.buffer.byteLength, true); // Image data size
+            dataView.setUint32(entryOffset + 12, currentOffset, true); // Image data offset
+            currentOffset += entry.buffer.byteLength;
+        });
         
+        currentOffset = headerSize + totalDirSize;
+        imageEntries.forEach(entry => {
+            new Uint8Array(icoBuffer, currentOffset, entry.buffer.byteLength).set(new Uint8Array(entry.buffer));
+            currentOffset += entry.buffer.byteLength;
+        });
+
+        return new Blob([icoBuffer], { type: 'image/x-icon' });
+    }
+
+    function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        const filename = filenameInput.value.trim() || 'favicon';
-        link.download = `${filename}.ico`;
+        link.download = filename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        
         URL.revokeObjectURL(url);
     }
 });
