@@ -1,5 +1,5 @@
-// ES Modules 形式で to-ico ライブラリをCDNから直接インポート
-import toIco from 'https://cdn.jsdelivr.net/npm/to-ico@2.0.0/dist/index.mjs';
+// 信頼性の高いES Module CDNである「esm.sh」からライブラリをインポート
+import toIco from 'https://esm.sh/to-ico';
 
 document.addEventListener('DOMContentLoaded', () => {
     // DOM要素の取得
@@ -154,7 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
             );
             
             // to-icoライブラリでICOファイルを生成
-            // importした toIco 関数を直接使用
             const icoBuffer = await toIco(imageBuffers);
 
             // ダウンロードリンクを生成
