@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ICOコンバーター | 複数画像を1つのICOに変換</title>
+    <meta name="description" content="複数のPNGなどの画像ファイルをドラッグ＆ドロップするだけで、1つのマルチサイズICOファイルに変換できる無料のオンラインツールです。">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🖼️</text></svg>">
+</head>
+<body>
+    <header class="header">
+        <h1>🖼️ ICOコンバーター</h1>
+        <p>複数の画像を1つのICOファイルに変換します</p>
+    </header>
+
+    <main class="container">
+        <div id="drop-zone" class="drop-zone">
+            <div class="drop-zone__prompt">
+                <p>ここに画像ファイル(PNG)をドラッグ＆ドロップ</p>
+                <p>または</p>
+                <button type="button" id="file-input-button" class="btn">ファイルを選択</button>
+                <input type="file" id="file-input" multiple accept="image/png, image/jpeg, image/webp" hidden>
+            </div>
+        </div>
+
+        <div id="preview-area" class="preview-area" hidden>
+            <h2>プレビュー</h2>
+            <div id="preview-grid" class="preview-grid"></div>
+        </div>
+
+        <div class="actions">
+            <button id="generate-button" class="btn btn--primary" disabled>
+                <span id="generate-button-text">ICOを生成</span>
+                <div id="spinner" class="spinner" hidden></div>
+            </button>
+        </div>
+
+        <div id="result-area" class="result-area" hidden>
+            <h2>完成！</h2>
+            <a id="download-link" class="btn btn--success" download="favicon.ico">ICOをダウンロード</a>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <p>Made with ❤️ by a Frontend Engineer.</p>
+    </footer>
+
+    <!-- to-ico ライブラリはここで読み込まず、JSファイル内で import します -->
+    <!-- type="module" を追加 -->
+    <script src="script.js" type="module"></script>
+</body>
+</html>
