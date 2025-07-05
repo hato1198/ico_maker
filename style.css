@@ -135,6 +135,9 @@ header p {
     box-sizing: border-box;
     transition: background-color 0.2s, border-color 0.2s;
 }
+#multi-workspace {
+    padding-bottom: 6rem;
+}
 
 .workspace.drag-over {
     border-color: var(--primary-color);
